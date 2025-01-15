@@ -1,0 +1,130 @@
+
+***************************************************** EXPORT-PAPER exportangrowth ************************************************
+
+
+global expvars merchandise     fdi  assistancereceived  saving     agricemployment taxexport merchandiseexported inflation depositinterestrate  imports     tariff interestrate firmbanks personalremittances research agricmachinery  financialacquisition  domesticinvestment domesticcredit dcreditprivate taxotrade   exchangerate agricland  eduexp laborintermediateedu research finalconsumption laboradvanceedu laborbasicedu unemployment  youth_ agricrawmaterial gov_effec nonfinancialinvest industry fixedcapitalformation     reserves_  unicef_ logistics_  unfpa_ undp_ debt_servicing  healthexp interestexpenses  insurance_ser wagesalaries industrialisation netimigration  infrascore gni_growth electriccon intellectualpropertyuse interestpayment fuelprice  tourism netbilateralaid dcreditfinancial netbartertrade industryemployment   multilateraflow  energyuse domesticsaving  gdp investmenttransport easebusiness nonfin_assets_invs gasolineprice  livestock_pro   foreignerasset aaxincomeprofit gfinal_  credit_info    humancapital     ict   serviceemployment   tradeopen   pppinvest  tariffmanu fin_flow_multi  population  electric_distri_los laborforce fin_assets_acq productscore   stocktrade  servicetrade nettrade 
+
+
+su $expvars
+
+
+
+
+******************************************** splitsample *************************************************************************
+
+
+
+splitsample, generate (sample) split(0.7 0.3) rseed(1234)
+
+asdoc sum if sample ==1
+asdoc sum if sample==2
+ 
+
+
+******************************************** Standard Lasso *************************************************************************
+
+***** 
+set seed 1234
+asdoc lasso linear exportangrowth $expvars if sample==1, rseed(1234)
+
+lassoselect id = 46
+
+estimate store Standard_lasso
+
+cvplot
+
+lassograph coefpath
+
+asdoc lassocoef Standard_lasso, sort(coef, standardized) nofvlabel 
+
+
+
+
+
+******************************************** Minimum BIC Lasso **********************************************************************
+
+asdoc lasso linear exportangrowth $expvars if sample==1, selection(bic) rseed(1234)
+
+asdoc lassoknots, display(nonzero bic)
+
+lassoselect id = 41
+
+estimate store MinBIC_lasso
+
+bicplot 
+
+lassograph coefpath
+
+asdoc lassocoef MinBIC_lasso, sort(coef, standardized) nofvlabel  
+
+
+
+******************************************** Squareroot  lasso **********************************************************************
+
+asdoc sqrtlasso exportangrowth $expvars if sample==1, selection(cv) rseed(1234) 
+
+lassoselect id = 36
+
+estimate store Sqrt_lasso
+
+cvplot
+
+lassograph coefpath
+
+asdoc lassocoef Sqrt_lasso, sort(coef, standardized) nofvlabel 
+
+
+
+
+******************************************************************************************************************elastinet**********
+
+
+elasticnet linear exportangrowth $expvars if sample==1, alpha (0)
+
+asdoc elasticnet linear exportangrowth $expvars if sample==1, alpha (1)
+
+lassoselect id = 46
+
+estimate store elasticnet
+ 
+cvplot 
+
+lassograph coefpath
+
+asdoc lassocoef elasticnet, sort(coef, standardized) nofvlabel 
+
+
+
+**************************************************manu selected variables***************
+
+asdoc lassocoef Standard_lasso MinBIC_lasso Sqrt_lasso elasticnet, sort(coef, standardized) nofvlabel
+
+asdoc lassogof Standard_lasso MinBIC_lasso Sqrt_lasso elasticnet, over(sample)
+
+
+************************************************************************************************************************************
+******************************************** Lasso for Inference  *******************************************************************
+
+
+global x  pppinvest  nettrade servicetrade stocktrade  gasolineprice domesticcredit inflation
+
+
+global con merchandise fdi  assistancereceived  saving agricemployment taxexport merchandiseexported  depositinterestrate  imports tariff interestrate firmbanks personalremittances research agricmachinery  financialacquisition  domesticinvestment  dcreditprivate taxotradeexchangerate agricland  eduexp laborintermediateedu research finalconsumption laboradvanceedu laborbasicedu unemploymentyouth_ agricrawmaterial gov_effec nonfinancialinvest industry fixedcapitalformation     reserves_  unicef_ logistics_  unfpa_ undp_ debt_servicing  healthexp interestexpenses  insurance_ser wagesalaries industrialisation netimigration  infrascore gni_growth electriccon intellectualpropertyuse interestpayment fuelprice  tourism netbilateralaid dcreditfinancial netbartertrade industryemployment   multilateraflow  energyuse domesticsaving  gdp investmenttransport easebusiness nonfin_assets_invs   livestock_pro foreignerasset aaxincomeprofit gfinal_ credit_info humancapital ict serviceemployment tradeopen tariffmanu fin_flow_multi  population  electric_distri_los laborforce fin_assets_acq productscore   
+
+
+dsregress exportangrowth $x, controls($con) missingok /* The 'x' are the 4 of 7 variables that have been selected; and cons are all some of the variables that were not selected (therefore, cons variables shouls not be part of the 'x' */
+
+outreg2 using SoloResults.doc, dec(3) addstat(Vars of Interest,e(k_varsofinterest), Controls, e(k_controls), Wald, e(chi2),  ChiP-value, e(p), Controls selected, e(k_controls_sel)) append ctitle (model1) label
+
+
+poregress exportangrowth $x, controls($con) missingok
+outreg2 using SoloResults.doc, dec(3) addstat(Vars of Interest,e(k_varsofinterest), Controls, e(k_controls), Wald, e(chi2),  Chi P-value, e(p), Controls selected, e(k_controls_sel)) append ctitle (model1) label
+
+
+poivregress exportangrowth $x, controls($con) missingok
+outreg2 using SoloResults.doc, dec(3) addstat(Vars of Interest,e(k_varsofinterest), Controls, e(k_controls), Wald, e(chi2),  Chi P-value, e(p), Controls selected, e(k_controls_sel), Instruments, e(k_inst), Instruments Selected, e(k_inst_sel)) append ctitle (model1) label
+
+
+xpoivregress exportangrowth $x, controls($con) missingok
+outreg2 using SoloResults.doc, dec(3) addstat(Vars of Interest,e(k_varsofinterest), Controls, e(k_controls), Wald, e(chi2),  Chi P-value, e(p), Controls selected, e(k_controls_sel), Instruments, e(k_inst), Instruments Selected, e(k_inst_sel)) append ctitle (model1) label
+
